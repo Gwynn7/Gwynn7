@@ -1,8 +1,8 @@
-5. 一体机开发
-5.1 开发板介绍
-5.2 平台仿真
-5.2.1 环境配置
-5.2.1.1 资料下载
+# 5. 一体机开发
+## 5.1 开发板介绍
+## 5.2 平台仿真
+### 5.2.1 环境配置
+#### 5.2.1.1 资料下载
 资料来源：
 下载站台：sftp://218.17.249.213
 账号：cvitek_mlir_2023
@@ -44,11 +44,11 @@ Using binary mode to transfer files.
 使用get命令下载文件：
 ftp> get cvitek_mlir_ubuntu-18.04_v1.5.0-883-gee0cbe9e3.tar.gz
 若要一次下载多个文件，使用mget命令：
-# 不使用prompt的话，每一个文件都需要询问后才会开始下载。
+#不使用prompt的话，每一个文件都需要询问后才会开始下载。
 ftp> prompt
 Interactive mode off.
 ftp> mget xxx,xxx,xxx
-5.2.1.2 环境安装
+#### 5.2.1.2 环境安装
 安装docker：
 sudo apt install docker.io
 sudo systemctl start docker
@@ -64,20 +64,20 @@ docker run --privileged --name cvitek2 -v $PWD:/workspace -it sophgo/tpu_dev:lat
 
 运行docker：
 docker exec -it cvitek2 bash
-5.2.2 编译ONNX模型
+### 5.2.2 编译ONNX模型
 本节需要如下包：
 
-5.2.2.1 加载tpu-mlir
+#### 5.2.2.1 加载tpu-mlir
 以下操作需要在docker中进行，需要先加载docker。
 解压缩包，并定义环境变量：
 tar zxf tpu-mlir_v1.0.1-ga942a1ec-20230402.tar.gz
 source tpu_mlir/envsetup.sh
-5.2.2.2 准备工作目录
+#### 5.2.2.2 准备工作目录
 建立pptsm目录，注意需要与tpu_mlir为同级目录；并把模型文件和图片文件都放入pptsm目录中：
 mkdir pptsm_model && cd pptsm_model
-# cp pptsm.onnx,images .
+#cp pptsm.onnx,images .
 mkdir workspace && cd workspace
- 5.2.2.3 ONNX转MLIR
+ #### 5.2.2.3 ONNX转MLIR
 tpu_mlir中有自定义的python文件model_transform.py将ONNX模型转为MLIR模型，model_transform.py支持的参数如下：
 
 但是注意，model_transform.py只适用于图片输入或npz输入，由于PP-TSM使用的是视频输入，所以此处需要修改model_transform.py，定义专属PP-TSM的预处理函数，或者不修改model_transform.py,但是需要自定义函数，将输入的视频文件转化为npz文件，将npz文件作为PP-TSM使用model_transform.py转换模型时的输入，上述两种方法二选一即可。
@@ -414,8 +414,8 @@ self.merge_weight,
 File "/workspace/tpu-mlir/python/utils/mlir_shell.py", line 130, in mlir_to_model
 codegen_param,
 UnboundLocalError: local variable 'codegen_param' referenced before assignment
-5.2.2.5 MLIR转INT8模型
-5.2.2.5.1生成校准表
+#### 5.2.2.5 MLIR转INT8模型
+##### 5.2.2.5.1生成校准表
 转INT8模型前需要跑calibration,得到校准表；输入数据的数量根据情况准备100~1000个样例左右。
 然后用校准表，生成对称或非对称的cvimodel。如果对称符合需要，一般不建议使用非对称，因为非对称的性能会略差于对称模型。
 此处用现有的304个视频转换为的npz文件进行校准，执行calibration:
@@ -433,7 +433,7 @@ model_deploy.py \
 --test_reference pptsm_top_outputs.npz \
 --tolerance 0.8,0.45 \
 --model pptsm_int8_sym.cvimodel
-5.2.2.5.3编译为INT非对称量化模型
+##### 5.2.2.5.3编译为INT非对称量化模型
 model_deploy.py \
 --mlir pptsm_fp32.mlir \
 --quantize INT8 \
@@ -443,8 +443,8 @@ model_deploy.py \
 --test_reference pptsm_top_outputs.npz \
 --tolerance 0.8,0.45 \
 --model pptsm_int8_asym.cvimodel
-5.2.2.6效果对比
-5.2.2.6.1自定义PP-TSM的推理代码：
+#### 5.2.2.6效果对比
+##### 5.2.2.6.1自定义PP-TSM的推理代码：
 import torch
 import argparse
 import os
@@ -581,27 +581,27 @@ else:
         args = parser.parse_args()
         main(args)
 
-5.2.2.6.2使用onnx模型进行推理：
+##### 5.2.2.6.2使用onnx模型进行推理：
 python /workspace/tpu-mlir/python/samples/classify_pptsm.py \
 --dataset ../videos2 \
 --model ../ppTSMv2.onnx
 效果：
 
-5.2.2.6.3使用bf16 cvimode进行推理：
+##### 5.2.2.6.3使用bf16 cvimode进行推理：
 python /workspace/tpu-mlir/python/samples/classify_pptsm.py \
 --dataset ../videos2 \
 --model ./pptsm_bf16.cvimodel
 效果：
 
-5.2.2.6.4使用int8对称 cvimode进行推理：
+##### 5.2.2.6.4使用int8对称 cvimode进行推理：
 python /workspace/tpu-mlir/python/samples/classify_pptsm.py \
 --dataset ../videos2 \
 --model ./pptsm_int8_sym.cvimodel
-5.2.2.6.5使用int8 非对称 cvimode进行推理
+##### 5.2.2.6.5使用int8 非对称 cvimode进行推理
 python /workspace/tpu-mlir/python/samples/classify_pptsm.py \
 --dataset ../videos2 \
 --model ./pptsm_int8_asym.cvimodel
-5.2.2.6.6效果对比
+##### 5.2.2.6.6效果对比
 类别	视频	模型	分类	置信度
 Fatigue	f1.avi	onnx	Fatigue	0.96
 	bf16 cvimode	Fatigue	0.95
@@ -643,14 +643,14 @@ n5.avi	onnx	Normal	0.97
 	bf16 cvimode	Normal	0.96
 	int8 aym cvimodel	Normal	0.98
 	int8 asym cvimodel	Normal	0.98
-5.3 EVB板编译
-5.3.1 环境配置
-5.3.1.1 软件安装
+## 5.3 EVB板编译
+### 5.3.1 环境配置
+#### 5.3.1.1 软件安装
 需要用到Ubuntu（推荐使用Ubuntu 20.04 LTS）作为系统环境，可选择装载Ubuntu系统的主机或在VM Ware中创建虚拟机。
-5.3.1.1.1 在VM Ware安装Ubuntu
-5.3.1.1.2 PuTTy安装
-5.3.1.1.3 MobaXterm安装
-5.3.1.2连接开发板
+##### 5.3.1.1.1 在VM Ware安装Ubuntu
+##### 5.3.1.1.2 PuTTy安装
+##### 5.3.1.1.3 MobaXterm安装
+#### 5.3.1.2连接开发板
 1.Windows系统
 1.串口通信连接：
 
@@ -699,7 +699,7 @@ https://blog.csdn.net/qq_38125389/article/details/103619500
 https://blog.csdn.net/wzz953200463/article/details/115704223
 实操：
 ls /dev/tty*
-# 如果此处输出中有/dev/ttyUSBx,那么就表明有UART驱动，否则需要参照上述教程下载驱动
+#如果此处输出中有/dev/ttyUSBx,那么就表明有UART驱动，否则需要参照上述教程下载驱动
 
 sudo apt-get install minicom
 sudo minicom -s
@@ -717,19 +717,19 @@ sudo minicom -s
 直接将开发板和Ubuntu主机接入到同一个路由器中，路由器会自动给开发板分配一个ip，先进行串口通信使用ifconfig命令查看开发板的ip地址：
 
 可以看到eth0网卡的ip是192.168.1.10,使用ssh root@192.168.1.10连接即可。
-5.3.1.3 获取资源包
+#### 5.3.1.3 获取资源包
 参考：https://github.com/sophgo/cvi_mmf_sdk
-5.3.1.3.1 获取cvi_mmf_sdk
+##### 5.3.1.3.1 获取cvi_mmf_sdk
 使用git clone命令：
 git clone https://github.com/sophgo/cvi_mmf_sdk.git
-5.3.1.3.2 获取编译工具链
+##### 5.3.1.3.2 获取编译工具链
 使用wget命令：
 wget https://sophon-file.sophon.cn/sophon-prod-s3/drive/23/03/07/16/host-tools.tar.gz
-5.3.1.3.3解压工具链并链接到SDK目录
+##### 5.3.1.3.3解压工具链并链接到SDK目录
 tar xvf host-tools.tar.gz
 cd cvi_mmf_sdk/
 ln -s ../host-tools ./
-5.3.1.3.4安装编译依赖工具包
+##### 5.3.1.3.4安装编译依赖工具包
 sudo apt install pkg-config
 sudo apt install build-essential
 sudo apt install ninja-build
@@ -768,7 +768,7 @@ sudo apt install bison
 注意：cmake版本最低要求3.16.5，但是用一般安装命令：
 sudo apt install cmake
 安装的并不是cmake最新版本。需要参考教程：https://www.cnblogs.com/yibeimingyue/p/15604692.html。
-5.3.1.4 编译
+#### 5.3.1.4 编译
 cd cvi_mmf_sdk/
 source build/cvisetup.sh
 #需要根据开发板的型号进行修改
@@ -776,7 +776,7 @@ defconfig cv1811c_wevb_0006a_spinor
 build_all
 编译成功后将在install目录看到生成的image：
 
-5.3.1.5烧录
+#### 5.3.1.5烧录
 ● 接好EVB板的串口线
 ● 将SD卡格式化成FAT32格式
 ● 将install目录下的image放入SD卡根目录
@@ -791,7 +791,7 @@ build_all
 ● 将SD卡插入的SD卡槽中
 ● 将平台重新上电，开机自动进入烧录，烧录过程log如下：
 Hit any key to stop autoboot:  0
-## Resetting to default environment
+##Resetting to default environment
 Start SD downloading...
 mmc1 : finished tuning, code:60
 465408 bytes read in 11 ms (40.3 MiB/s)
@@ -842,13 +842,13 @@ mars_c906#
 ├── fw_payload_uboot.bin
 ├── partition_spinor.xml
 └── rootfs.spinor
-5.4 部署算法到EVB板
+## 5.4 部署算法到EVB板
 本节需要cvitek_tpu_sdk包，并且需要在docker环境中运行。
-5.4.1 激活编译环境
+### 5.4.1 激活编译环境
 解压包并声明环境变量：
 export TPU_SDK_PATH=$PWD/cvitek_tpu_sdk
 cd cvitek_tpu_sdk && source ./envs_tpu_sdk.sh && cd ..
-5.4.2 交叉编译
+### 5.4.2 交叉编译
 自定义PP-TSM的推理代码如下：
 #include <stdio.h>
 #include <fstream>
@@ -1001,11 +1001,11 @@ root@131f100abfee:/workspace# find . -name riscv64-unknown-linux-musl-gcc
 
 
 root@131f100abfee:/workspace/host-tools/gcc/riscv64-linux-musl-x86_64/bin# export PATH=$PATH:$PWD
-5.4.3 运行
-5.4.3.1 登录开发板
+### 5.4.3 运行
+#### 5.4.3.1 登录开发板
 使用ssh连接或者串口连接都可。
-5.4.3.2 挂载目录
-5.4.3.2.1 服务器（PC）端：
+#### 5.4.3.2 挂载目录
+##### 5.4.3.2.1 服务器（PC）端：
 安装nfs-kernel-server:
 sudo apt-get install nfs-kernel-server
 选择/建立mount文件夹，注意一定要把刚才生成的可执行文件包含进来。
@@ -1014,12 +1014,12 @@ sudo apt-get install nfs-kernel-server
 restart nfs服务：
 sudo /etc/init.d/rpcbind restart
 sudo /etc/init.d/nfs-kernel-server restart
-5.4.3.2.2 EVB板端：
+##### 5.4.3.2.2 EVB板端：
 mount -t nfs 192.168.137.128:/home/orla/workspace/cvitek  /mnt/nfs -o nolock
 
 mount -t nfs 192.168.137.128:/home/hub/workspace/gq/cvitek/cvitek_tpu_2023/  /mnt/nfs -o nolock
 注意：PC端和EVB板必须连接在同一局域网内。
-5.4.3.3运行
+#### 5.4.3.3运行
 # 声明环境变量
 export TPU_SDK_PATH=$PWD/cvitek_tpu_sdk
 cd cvitek_tpu_sdk && source ./envs_tpu_sdk.sh && cd ..
